@@ -9,9 +9,188 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <style>
+      .u-toggle, .u-panel { font-family: "Inter", ui-sans-serif, system-ui, sans-serif; color: #fff; }
+      .u-toggle {
+        position: fixed; left: 1.5rem; bottom: 1.5rem; z-index: 55;
+        display: flex; align-items: center; gap: .5rem; height: 2.75rem; padding: 0 1rem;
+        border-radius: 999px; border: 1px solid rgb(255 255 255 / .1);
+        background: rgb(12 14 24 / .7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        font-size: .8125rem; cursor: pointer; transition: background .2s, transform .2s;
+      }
+      .u-toggle:hover { background: rgb(30 34 50 / .8); transform: translateY(-1px); }
+      .u-toggle:focus-visible, .u-panel :focus-visible { outline: 2px solid #fcd9a0; outline-offset: 2px; }
+      .u-count { min-width: 1.4rem; padding: .1rem .4rem; border-radius: 999px; background: rgb(252 217 160 / .18); color: #fcd9a0; font-size: .6875rem; font-variant-numeric: tabular-nums; text-align: center; }
+      .u-panel {
+        position: fixed; left: 1.5rem; bottom: 5rem; z-index: 55;
+        width: min(380px, calc(100vw - 3rem)); max-height: min(620px, calc(100vh - 7rem));
+        display: flex; flex-direction: column; overflow: hidden; border-radius: 1.5rem;
+        background: linear-gradient(160deg, rgb(20 24 38 / .82), rgb(8 10 18 / .9));
+        backdrop-filter: blur(24px) saturate(140%); -webkit-backdrop-filter: blur(24px) saturate(140%);
+        border: 1px solid rgb(255 255 255 / .08); box-shadow: 0 30px 80px -20px rgb(0 0 0 / .7);
+      }
+      .u-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.25rem 1.25rem .5rem; }
+      .u-eyebrow { margin: 0; font-size: .625rem; letter-spacing: .28em; text-transform: uppercase; color: rgb(252 217 160 / .75); }
+      .u-title { margin: .35rem 0 0; font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 1.875rem; line-height: 1; text-wrap: balance; }
+      .u-close { width: 2rem; height: 2rem; border: 0; border-radius: 999px; background: transparent; color: rgb(255 255 255 / .6); font-size: 1.25rem; cursor: pointer; }
+      .u-close:hover { background: rgb(255 255 255 / .08); color: #fff; }
+      .u-form { display: grid; gap: .75rem; padding: .75rem 1.25rem 1.25rem; border-bottom: 1px solid rgb(255 255 255 / .06); }
+      .u-label { display: grid; gap: .35rem; font-size: .625rem; letter-spacing: .14em; text-transform: uppercase; color: rgb(255 255 255 / .45); }
+      .u-input {
+        width: 100%; box-sizing: border-box; padding: .6rem .8rem; border-radius: .75rem;
+        border: 1px solid rgb(255 255 255 / .08); background: rgb(255 255 255 / .04);
+        color: #fff; font: inherit; font-size: .875rem; letter-spacing: normal; text-transform: none; outline: none;
+      }
+      .u-input:focus { border-color: rgb(252 217 160 / .5); background: rgb(255 255 255 / .07); }
+      .u-submit {
+        height: 2.75rem; border: 0; border-radius: 999px; cursor: pointer;
+        background: linear-gradient(#fef3c7, #fcd34d); color: #111; font: inherit; font-size: .875rem; font-weight: 500;
+      }
+      .u-submit:disabled { opacity: .6; cursor: progress; }
+      .u-msg { margin: 0; min-height: 1rem; font-size: .75rem; color: rgb(255 255 255 / .55); }
+      .u-msg[data-kind="error"] { color: #fca5a5; }
+      .u-msg[data-kind="ok"] { color: #86efac; }
+      .u-list-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem .5rem; font-size: .625rem; letter-spacing: .2em; text-transform: uppercase; color: rgb(255 255 255 / .4); }
+      .u-refresh { border: 0; background: none; color: rgb(252 217 160 / .8); font: inherit; letter-spacing: .12em; cursor: pointer; }
+      .u-list { list-style: none; margin: 0; padding: 0 .75rem 1rem; overflow-y: auto; scrollbar-width: thin; }
+      .u-item { display: grid; grid-template-columns: 2.25rem 1fr; gap: .75rem; align-items: center; padding: .6rem .5rem; border-radius: .75rem; }
+      .u-item:hover { background: rgb(255 255 255 / .04); }
+      .u-avatar { width: 2.25rem; height: 2.25rem; border-radius: 999px; display: grid; place-items: center; background: rgb(252 217 160 / .14); color: #fcd9a0; font-family: "Instrument Serif", Georgia, serif; font-size: 1.1rem; }
+      .u-name { margin: 0; font-size: .875rem; overflow-wrap: anywhere; }
+      .u-email { margin: .1rem 0 0; font-size: .75rem; color: rgb(255 255 255 / .5); overflow-wrap: anywhere; }
+      .u-empty { padding: 1.5rem .5rem; text-align: center; font-size: .8125rem; color: rgb(255 255 255 / .4); }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Registro de usuarios (API: /api/usuarios) -->
+    <button type="button" class="u-toggle" id="u-toggle" aria-expanded="false" aria-controls="u-panel">
+      Usuarios <span class="u-count" id="u-count">–</span>
+    </button>
+
+    <section class="u-panel" id="u-panel" aria-labelledby="u-title" hidden>
+      <header class="u-head">
+        <div>
+          <p class="u-eyebrow">Viajeros</p>
+          <h2 class="u-title" id="u-title">Registrar usuario</h2>
+        </div>
+        <button type="button" class="u-close" id="u-close" aria-label="Cerrar">×</button>
+      </header>
+
+      <form class="u-form" id="u-form" novalidate>
+        <label class="u-label">Nombre
+          <input class="u-input" name="nombre" autocomplete="name" required maxlength="120" placeholder="Pablo Sánchez" />
+        </label>
+        <label class="u-label">Email
+          <input class="u-input" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="pablo@ejemplo.com" />
+        </label>
+        <button class="u-submit" id="u-submit" type="submit">Registrar</button>
+        <p class="u-msg" id="u-msg" role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="u-list-head">
+        <span>Usuarios guardados</span>
+        <button type="button" class="u-refresh" id="u-refresh">Actualizar</button>
+      </div>
+      <ul class="u-list" id="u-list" aria-live="polite"></ul>
+    </section>
+
+    <script>
+      (() => {
+        const API = '/api/usuarios'
+        const $ = (id) => document.getElementById(id)
+        const panel = $('u-panel'), toggle = $('u-toggle'), form = $('u-form')
+        const list = $('u-list'), msg = $('u-msg'), submit = $('u-submit'), count = $('u-count')
+
+        const setMsg = (text, kind = '') => { msg.textContent = text; msg.dataset.kind = kind }
+
+        const readError = async (res) => {
+          try { return (await res.json()).error || `Error ${res.status}` } catch { return `Error ${res.status}` }
+        }
+
+        const renderEmpty = (text) => {
+          list.replaceChildren()
+          const li = document.createElement('li')
+          li.className = 'u-empty'
+          li.textContent = text
+          list.append(li)
+        }
+
+        // Se construye con textContent: nunca se inyecta HTML procedente de la base de datos.
+        const render = (usuarios) => {
+          count.textContent = usuarios.length
+          if (!usuarios.length) return renderEmpty('Todavía no hay usuarios registrados.')
+          list.replaceChildren(...usuarios.map((u) => {
+            const li = document.createElement('li'); li.className = 'u-item'
+            const avatar = document.createElement('span'); avatar.className = 'u-avatar'; avatar.setAttribute('aria-hidden', 'true')
+            avatar.textContent = (u.nombre || '?').trim().charAt(0).toUpperCase()
+            const info = document.createElement('div')
+            const name = document.createElement('p'); name.className = 'u-name'; name.textContent = u.nombre
+            const email = document.createElement('p'); email.className = 'u-email'; email.textContent = u.email
+            info.append(name, email); li.append(avatar, info)
+            return li
+          }))
+        }
+
+        const cargarUsuarios = async () => {
+          renderEmpty('Cargando…')
+          try {
+            const res = await fetch(API, { headers: { Accept: 'application/json' } })
+            if (!res.ok) throw new Error(await readError(res))
+            if (!res.headers.get('content-type')?.includes('application/json')) {
+              throw new Error('la API no está activa. Arranca el proyecto con «vercel dev» o despliégalo en Vercel.')
+            }
+            render(await res.json())
+          } catch (err) {
+            count.textContent = '!'
+            renderEmpty(`No se pudo cargar la lista: ${err.message}`)
+          }
+        }
+
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault()
+          const nombre = form.nombre.value.trim()
+          const email = form.email.value.trim()
+          if (!nombre) return setMsg('Escribe un nombre.', 'error'), form.nombre.focus()
+          if (!form.email.checkValidity() || !email) return setMsg('Escribe un email válido.', 'error'), form.email.focus()
+
+          submit.disabled = true; submit.textContent = 'Registrando…'; setMsg('')
+          try {
+            const res = await fetch(API, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ nombre, email }),
+            })
+            if (!res.ok) throw new Error(await readError(res))
+            const usuario = await res.json()
+            form.reset()
+            setMsg(`${usuario.nombre} registrado.`, 'ok')
+            await cargarUsuarios()
+          } catch (err) {
+            setMsg(err.message, 'error')
+          } finally {
+            submit.disabled = false; submit.textContent = 'Registrar'
+          }
+        })
+
+        const abrir = (open) => {
+          panel.hidden = !open
+          toggle.setAttribute('aria-expanded', String(open))
+          if (open) { cargarUsuarios(); form.nombre.focus() }
+        }
+        toggle.addEventListener('click', () => abrir(panel.hidden))
+        $('u-close').addEventListener('click', () => abrir(false))
+        $('u-refresh').addEventListener('click', cargarUsuarios)
+        // Los atajos del globo (H, N, Esc) no deben dispararse al escribir en el formulario
+        panel.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') { abrir(false); toggle.focus() }
+          e.stopPropagation()
+        })
+
+        cargarUsuarios()
+      })()
+    </script>
   </body>
 </html>
