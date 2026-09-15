@@ -13,13 +13,16 @@ import { MemoryVault } from './components/ui/MemoryVault'
 import { TopBar } from './components/ui/TopBar'
 import { useKeyboard } from './hooks/useKeyboard'
 import { useOrbis } from './store/useOrbis'
+import { useSession } from './store/useSession'
 
 export default function App() {
   const hydrate = useOrbis((s) => s.hydrate)
   const detailActive = useOrbis((s) => s.detailActive)
+  // Los recuerdos siguen a la sesión: se recargan al entrar y se vacían al salir o caducar
+  const userId = useSession((s) => (s.token ? s.user?.id ?? null : null))
   useEffect(() => {
-    hydrate()
-  }, [hydrate])
+    hydrate(userId)
+  }, [hydrate, userId])
   useKeyboard()
 
   return (

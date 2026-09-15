@@ -36,7 +36,11 @@ interface OrbisState {
   detailActive: boolean
   prefs: Preferences
 
-  hydrate: () => Promise<void>
+  /** Usuario al que pertenecen los recuerdos cargados */
+  ownerId: number | null
+
+  /** Carga los recuerdos del usuario; con null vacía el estado (sesión cerrada) */
+  hydrate: (userId: number | null) => Promise<void>
   addMemory: (draft: MemoryDraft, files: File[]) => Promise<Memory>
   deleteMemory: (id: string) => Promise<void>
 
@@ -96,6 +100,10 @@ const initialPrefs = loadPrefs()
 
 const uid = () => crypto.randomUUID()
 
+/** Sin sesión no se escribe nada: los recuerdos siempre van a la cuenta de alguien. */
+const persist = (ownerId: number | null, list: Memory[]) =>
+  ownerId === null ? Promise.resolve() : saveMemories(ownerId, list)
+
 export const useOrbis = create<OrbisState>((set, get) => ({
   memories: [],
   hydrated: false,
@@ -115,15 +123,39 @@ export const useOrbis = create<OrbisState>((set, get) => ({
   detailActive: false,
   prefs: initialPrefs,
 
-  hydrate: async () => {
+  ownerId: null,
+
+  hydrate: async (userId) => {
+    // Nada del usuario anterior debe seguir visible mientras carga el siguiente
+    get().memories.forEach((m) => m.media.forEach((x) => x.stored && URL.revokeObjectURL(x.src)))
+    set({
+      memories: [],
+      hydrated: false,
+      ownerId: userId,
+      selectedId: null,
+      hoveredId: null,
+      flyTo: null,
+      lightbox: null,
+      curatorOpen: false,
+      picking: false,
+      pickedLocation: null,
+      cinematic: false,
+      tourIndex: 0,
+      music: false,
+      accountOpen: false,
+    })
+    if (userId === null) return
+
     let memories: Memory[]
     try {
-      memories = (await loadMemories()) ?? SEED_MEMORIES
-      if (memories === SEED_MEMORIES) await saveMemories(memories)
+      memories = (await loadMemories(userId)) ?? SEED_MEMORIES
+      if (memories === SEED_MEMORIES) await saveMemories(userId, memories)
     } catch (err) {
       console.warn('[orbis] IndexedDB no disponible, usando datos en memoria', err)
       memories = SEED_MEMORIES
     }
+    // Si la sesión cambió durante la carga, estos recuerdos ya no son de quien está dentro
+    if (get().ownerId !== userId) return
     set({ memories, hydrated: true })
   },
 
@@ -145,7 +177,7 @@ export const useOrbis = create<OrbisState>((set, get) => ({
     const memory: Memory = { ...draft, id: uid(), media, createdAt: Date.now() }
     const memories = [...get().memories, memory]
     set({ memories })
-    await saveMemories(memories)
+    await persist(get().ownerId, memories)
     return memory
   },
 
@@ -154,7 +186,7 @@ export const useOrbis = create<OrbisState>((set, get) => ({
     if (!target) return
     const memories = get().memories.filter((m) => m.id !== id)
     set({ memories, selectedId: null, lightbox: null })
-    await saveMemories(memories)
+    await persist(get().ownerId, memories)
     await Promise.all(
       target.media.filter((m) => m.stored).map((m) => {
         URL.revokeObjectURL(m.src)
@@ -211,7 +243,7 @@ export const useOrbis = create<OrbisState>((set, get) => ({
   clearLocalMemories: async () => {
     const { memories } = get()
     set({ memories: [], selectedId: null, lightbox: null })
-    await saveMemories([])
+    await persist(get().ownerId, [])
     await Promise.all(
       memories.flatMap((m) => m.media.filter((x) => x.stored).map((x) => {
         URL.revokeObjectURL(x.src)

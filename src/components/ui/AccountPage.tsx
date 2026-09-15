@@ -639,7 +639,7 @@ function DataSection({ notify }: { notify: (k: 'ok' | 'error', t: string) => voi
         <ul className="grid gap-2.5 text-[13px] leading-relaxed text-white/60">
           {[
             'Tu contraseña se guarda cifrada con bcrypt: nadie, ni siquiera el administrador, puede leerla.',
-            'Tus elementos solo son accesibles con tu sesión; ninguna otra cuenta puede consultarlos.',
+            'Tus elementos solo son accesibles con tu sesión; ninguna otra cuenta puede consultarlos, tampoco los recuerdos guardados en este navegador.',
             'La sesión caduca a los 7 días y puedes revocarla en cualquier momento desde Seguridad.',
             'Las imágenes de satélite se solicitan a Esri solo cuando acercas el globo.',
           ].map((t) => (
@@ -682,6 +682,8 @@ function DangerSection({ notify }: { notify: (k: 'ok' | 'error', t: string) => v
     setError('')
     try {
       await request('/api/cuenta', { method: 'DELETE', auth: true, body: { password, confirmacion } })
+      // La cuenta ya no existe: sus fotos y recuerdos tampoco deben quedarse en este navegador
+      await useOrbis.getState().clearLocalMemories().catch(() => {})
       useOrbis.getState().setAccountOpen(false)
       useSession.getState().logout('Tu cuenta se ha eliminado. Gracias por viajar con Orbis.')
     } catch (err) {
