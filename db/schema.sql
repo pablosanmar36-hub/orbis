@@ -14,6 +14,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
 -- Si la tabla ya existía (creada por api/usuarios.js), le añade la columna que falta.
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
+-- Los tokens emitidos antes de esta fecha dejan de valer
+-- (cambio de contraseña o "cerrar sesión en todos los dispositivos").
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sesiones_desde TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ;
+
 -- 2. Elementos privados de cada usuario ----------------------------------
 CREATE TABLE IF NOT EXISTS elementos (
   id         SERIAL PRIMARY KEY,

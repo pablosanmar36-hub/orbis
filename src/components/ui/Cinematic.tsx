@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Music, Music2, Pause, Play, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { GLOBE, TOUR_STEP_MS } from '../../config'
+import { GLOBE } from '../../config'
 import { AmbientEngine } from '../../lib/ambient'
 import { formatRange } from '../../lib/geo'
 import { coverOf, tourOrder, useOrbis } from '../../store/useOrbis'
@@ -11,6 +11,7 @@ import { EASE } from './motion'
 export function Cinematic() {
   const { cinematic, memories, tourIndex, setTourIndex, setCinematic, fly, music, toggleMusic } = useOrbis()
   const [paused, setPaused] = useState(false)
+  const stepMs = useOrbis((s) => s.prefs.tourSeconds) * 1000
   const engine = useRef<AmbientEngine | null>(null)
 
   const order = useMemo(() => tourOrder(memories), [memories])
@@ -21,7 +22,7 @@ export function Cinematic() {
     if (!cinematic || !current) return
     fly(current, GLOBE.tourDistance)
     if (paused) return
-    const t = setTimeout(() => setTourIndex((tourIndex + 1) % order.length), TOUR_STEP_MS)
+    const t = setTimeout(() => setTourIndex((tourIndex + 1) % order.length), stepMs)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cinematic, tourIndex, paused, order.length])
@@ -121,7 +122,7 @@ export function Cinematic() {
                     className="h-full bg-white"
                     initial={{ width: paused ? '100%' : '0%' }}
                     animate={{ width: '100%' }}
-                    transition={{ duration: paused ? 0 : TOUR_STEP_MS / 1000, ease: 'linear' }}
+                    transition={{ duration: paused ? 0 : stepMs / 1000, ease: 'linear' }}
                   />
                 )}
               </div>

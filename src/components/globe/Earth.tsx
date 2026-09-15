@@ -6,6 +6,7 @@ import { GLOBE, TEXTURES } from '../../config'
 import { vector3ToLatLng } from '../../lib/geo'
 import { useOrbis } from '../../store/useOrbis'
 import { earthFragment, earthVertex } from './shaders'
+import { sunDirection } from './sun'
 
 const Y = new Vector3(0, 1, 0)
 const q = new Quaternion()
@@ -25,7 +26,7 @@ export function Earth() {
       nightMap: { value: night },
       bumpMap: { value: topology },
       specMap: { value: water },
-      sunDir: { value: new Vector3(1, 0.3, 1).normalize() },
+      sunDir: { value: sunDirection },
       nightMix: { value: 0 },
       texel: { value: new Vector2(1 / ((topology.image as HTMLImageElement)?.width || 2048), 1 / ((topology.image as HTMLImageElement)?.height || 1024)) },
       bumpScale: { value: 5.0 },

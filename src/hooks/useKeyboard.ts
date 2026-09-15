@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useOrbis } from '../store/useOrbis'
+import { useSession } from '../store/useSession'
 
 /** Atajos globales: Esc cierra la capa superior, H oculta la interfaz, ←/→ en el lightbox. */
 export function useKeyboard() {
@@ -8,6 +9,8 @@ export function useKeyboard() {
       const target = e.target as HTMLElement
       if (target.closest('input, textarea')) return
       const s = useOrbis.getState()
+      // La página de cuenta y la pantalla de entrada gestionan su propio teclado
+      if (s.accountOpen || !useSession.getState().token) return
       if (e.key === 'Escape') {
         if (s.lightbox) s.closeLightbox()
         else if (s.picking) s.setPicking(false)

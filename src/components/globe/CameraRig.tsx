@@ -64,10 +64,10 @@ export function CameraRig() {
 
     if (controls) {
       controls.enabled = !f && !state.cinematic
-      controls.autoRotate = !f && !state.selectedId && !state.cinematic && !state.picking && !state.hoveredId && !state.curatorOpen
+      controls.autoRotate = state.prefs.autoRotate && !state.accountOpen && !f && !state.selectedId && !state.cinematic && !state.picking && !state.hoveredId && !state.curatorOpen
       // Rotación más precisa cuanto más cerca de la superficie
       const d = camera.position.length()
-      controls.rotateSpeed = Math.min(0.55, Math.max(0.06, (d - 1) * 0.28))
+      controls.rotateSpeed = Math.min(0.55, Math.max(0.015, (d - 1) * 0.3))
       controls.zoomSpeed = Math.min(0.9, Math.max(0.35, (d - 1) * 0.35))
     }
 

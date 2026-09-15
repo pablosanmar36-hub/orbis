@@ -19,6 +19,9 @@ export function ensureSchema() {
         creado_en      TIMESTAMPTZ NOT NULL DEFAULT now()
       )`
     await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash TEXT`
+    // Los tokens emitidos antes de esta fecha dejan de valer (cambio de contraseña, "cerrar todas las sesiones")
+    await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sesiones_desde TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0)`
+    await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ`
     await sql`
       CREATE TABLE IF NOT EXISTS elementos (
         id         SERIAL PRIMARY KEY,

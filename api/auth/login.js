@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { ensureSchema, sql } from '../_lib/db.js'
 import { methodNotAllowed, readBody, signToken } from '../_lib/auth.js'
+import { serverError } from '../_lib/session.js'
 
 // Hash de referencia: si el email no existe se compara igualmente, para que el tiempo
 // de respuesta no revele qué emails están registrados.
@@ -30,8 +31,6 @@ export default async function handler(req, res) {
     const { password_hash: _omit, ...usuario } = row
     return res.status(200).json({ token: signToken(usuario), usuario })
   } catch (err) {
-    if (err instanceof SyntaxError) return res.status(400).json({ error: 'El cuerpo debe ser JSON válido.' })
-    console.error('[login]', err)
-    return res.status(500).json({ error: 'Error interno del servidor.' })
+    return serverError(res, 'login', err)
   }
 }

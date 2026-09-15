@@ -32,6 +32,9 @@ interface OrbisState {
   music: boolean
   night: boolean
   uiHidden: boolean
+  accountOpen: boolean
+  detailActive: boolean
+  prefs: Preferences
 
   hydrate: () => Promise<void>
   addMemory: (draft: MemoryDraft, files: File[]) => Promise<Memory>
@@ -53,7 +56,43 @@ interface OrbisState {
   toggleMusic: () => void
   toggleNight: () => void
   toggleUi: () => void
+  setAccountOpen: (open: boolean) => void
+  setPref: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void
+  clearLocalMemories: () => Promise<void>
 }
+
+export interface Preferences {
+  /** Abrir el globo con las luces nocturnas activadas */
+  nightDefault: boolean
+  autoRotate: boolean
+  /** Música ambiental al iniciar el modo cinematográfico */
+  musicInTour: boolean
+  /** Segundos que dura cada destino del recorrido */
+  tourSeconds: number
+  /** Imágenes de satélite en alta resolución al acercarse */
+  detailImagery: boolean
+  /** Cordilleras, picos y ríos */
+  reliefLabels: boolean
+}
+
+const PREFS_KEY = 'orbis.prefs'
+export const DEFAULT_PREFS: Preferences = {
+  nightDefault: false,
+  autoRotate: true,
+  musicInTour: false,
+  tourSeconds: 7.5,
+  detailImagery: true,
+  reliefLabels: true,
+}
+
+function loadPrefs(): Preferences {
+  try {
+    return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }
+  } catch {
+    return DEFAULT_PREFS
+  }
+}
+const initialPrefs = loadPrefs()
 
 const uid = () => crypto.randomUUID()
 
@@ -70,8 +109,11 @@ export const useOrbis = create<OrbisState>((set, get) => ({
   cinematic: false,
   tourIndex: 0,
   music: false,
-  night: false,
+  night: initialPrefs.nightDefault,
   uiHidden: false,
+  accountOpen: false,
+  detailActive: false,
+  prefs: initialPrefs,
 
   hydrate: async () => {
     let memories: Memory[]
@@ -151,11 +193,32 @@ export const useOrbis = create<OrbisState>((set, get) => ({
   setPicked: (loc) => set({ pickedLocation: loc }),
 
   setCinematic: (on) =>
-    set({ cinematic: on, tourIndex: 0, selectedId: null, curatorOpen: false, lightbox: null, music: on ? get().music : false }),
+    set({ cinematic: on, tourIndex: 0, selectedId: null, curatorOpen: false, lightbox: null, music: on ? get().prefs.musicInTour : false }),
   setTourIndex: (i) => set({ tourIndex: i }),
   toggleMusic: () => set({ music: !get().music }),
   toggleNight: () => set({ night: !get().night }),
   toggleUi: () => set({ uiHidden: !get().uiHidden }),
+  setAccountOpen: (open) => set({ accountOpen: open, ...(open ? { selectedId: null, curatorOpen: false, cinematic: false, lightbox: null } : {}) }),
+  setPref: (key, value) => {
+    const prefs = { ...get().prefs, [key]: value }
+    set({ prefs })
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
+    } catch {
+      /* navegación privada: la preferencia dura hasta cerrar la pestaña */
+    }
+  },
+  clearLocalMemories: async () => {
+    const { memories } = get()
+    set({ memories: [], selectedId: null, lightbox: null })
+    await saveMemories([])
+    await Promise.all(
+      memories.flatMap((m) => m.media.filter((x) => x.stored).map((x) => {
+        URL.revokeObjectURL(x.src)
+        return deleteBlob(x.id)
+      })),
+    )
+  },
 }))
 
 export const useSelectedMemory = () => useOrbis((s) => s.memories.find((m) => m.id === s.selectedId) ?? null)

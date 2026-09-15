@@ -1,4 +1,5 @@
-import { ensureSchema, sql } from './_lib/db.js'
+import { sql } from './_lib/db.js'
+import { requireUser } from './_lib/session.js'
 import { getAuthUser, methodNotAllowed, readBody } from './_lib/auth.js'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
       if (fecha && !DATE_RE.test(fecha)) return res.status(400).json({ error: 'La fecha debe tener el formato AAAA-MM-DD.' })
       if (nota && nota.length > 2000) return res.status(400).json({ error: 'La nota admite hasta 2000 caracteres.' })
 
-      await ensureSchema()
+      if (!(await requireUser(req, res))) return // sesión revocada o cuenta eliminada
       const [elemento] = await sql`
         INSERT INTO elementos (user_id, titulo, lugar, lat, lng, fecha, nota)
         VALUES (${user.id}, ${titulo}, ${lugar}, ${lat}, ${lng}, ${fecha}, ${nota})
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
     }
 
     // El id sale del token verificado, nunca de la URL ni del cuerpo de la petición.
-    await ensureSchema()
+    if (!(await requireUser(req, res))) return
     const elementos = await sql`
       SELECT * FROM elementos
       WHERE user_id = ${user.id}
