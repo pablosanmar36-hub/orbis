@@ -1,5 +1,5 @@
 /** Texturas globales, servidas desde /public/textures (se descargan con `npm run textures`). */
-export const TEXTURE_BASE = './textures'
+export const TEXTURE_BASE = '/textures'
 
 export const TEXTURES = {
   day: `${TEXTURE_BASE}/earth-blue-marble.jpg`,
