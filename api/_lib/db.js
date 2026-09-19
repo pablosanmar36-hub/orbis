@@ -36,6 +36,22 @@ export function ensureSchema() {
         creado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
       )`
     await sql`CREATE INDEX IF NOT EXISTS elementos_user_id_idx ON elementos (user_id)`
+    // Dispositivos donde cada usuario ha activado las notificaciones push
+    await sql`
+      CREATE TABLE IF NOT EXISTS push_suscripciones (
+        id           SERIAL PRIMARY KEY,
+        user_id      INTEGER     NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        endpoint     TEXT        NOT NULL UNIQUE,
+        p256dh       TEXT        NOT NULL,
+        auth         TEXT        NOT NULL,
+        nombre       TEXT        NOT NULL DEFAULT 'Dispositivo',
+        seguridad    BOOLEAN     NOT NULL DEFAULT true,
+        recuerdos    BOOLEAN     NOT NULL DEFAULT true,
+        novedades    BOOLEAN     NOT NULL DEFAULT true,
+        creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+        ultimo_envio TIMESTAMPTZ
+      )`
+    await sql`CREATE INDEX IF NOT EXISTS push_suscripciones_user_id_idx ON push_suscripciones (user_id)`
   })().catch((err) => {
     schemaReady = null // reintentar en la siguiente petición
     throw err

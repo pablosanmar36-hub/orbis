@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { sql } from '../_lib/db.js'
 import { EMAIL_RE, methodNotAllowed, readBody, signToken } from '../_lib/auth.js'
 import { requireUser, serverError } from '../_lib/session.js'
+import { securityAlert } from '../_lib/push.js'
 
 /**
  * /api/cuenta  (Authorization: Bearer <token>)
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
         WHERE id = ${user.id}
         RETURNING id, nombre, email, creado_en, actualizado_en
       `
+      if (email !== user.email) await securityAlert(req, user.id, 'El email de tu cuenta ha cambiado', `Ahora inicias sesión con ${email}`)
       // El token lleva nombre y email: se reemite para que la sesión muestre los datos nuevos.
       return res.status(200).json({ usuario, token: signToken(usuario) })
     }

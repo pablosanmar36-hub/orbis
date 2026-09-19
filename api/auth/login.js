@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { ensureSchema, sql } from '../_lib/db.js'
 import { methodNotAllowed, readBody, signToken } from '../_lib/auth.js'
 import { serverError } from '../_lib/session.js'
+import { securityAlert } from '../_lib/push.js'
 
 // Hash de referencia: si el email no existe se compara igualmente, para que el tiempo
 // de respuesta no revele qué emails están registrados.
@@ -29,6 +30,7 @@ export default async function handler(req, res) {
     if (!row?.password_hash || !ok) return res.status(401).json({ error: 'Email o contraseña incorrectos.' })
 
     const { password_hash: _omit, ...usuario } = row
+    await securityAlert(req, usuario.id, 'Nuevo inicio de sesión en Orbis', 'Alguien ha entrado en tu cuenta')
     return res.status(200).json({ token: signToken(usuario), usuario })
   } catch (err) {
     return serverError(res, 'login', err)

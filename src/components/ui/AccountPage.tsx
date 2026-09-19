@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertTriangle,
+  Bell,
   Check,
   ChevronRight,
   Database,
@@ -16,16 +17,18 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { formatDate } from '../../lib/geo'
+import { NotificationsSection } from './NotificationsSection'
 import { DEFAULT_PREFS, useOrbis, type Preferences } from '../../store/useOrbis'
 import { initialOf, tokenExpiry, useSession, type SessionUser } from '../../store/useSession'
 import { FormMessage, PasswordField, TextField } from './fields'
 import { EASE } from './motion'
 
-type SectionId = 'perfil' | 'seguridad' | 'preferencias' | 'datos' | 'peligro'
+type SectionId = 'perfil' | 'seguridad' | 'notificaciones' | 'preferencias' | 'datos' | 'peligro'
 
 const SECTIONS: { id: SectionId; label: string; icon: ReactNode; danger?: boolean }[] = [
   { id: 'perfil', label: 'Perfil', icon: <UserRound size={16} strokeWidth={1.7} /> },
   { id: 'seguridad', label: 'Seguridad', icon: <KeyRound size={16} strokeWidth={1.7} /> },
+  { id: 'notificaciones', label: 'App y notificaciones', icon: <Bell size={16} strokeWidth={1.7} /> },
   { id: 'preferencias', label: 'Preferencias', icon: <SlidersHorizontal size={16} strokeWidth={1.7} /> },
   { id: 'datos', label: 'Datos y privacidad', icon: <Database size={16} strokeWidth={1.7} /> },
   { id: 'peligro', label: 'Cerrar cuenta', icon: <AlertTriangle size={16} strokeWidth={1.7} />, danger: true },
@@ -58,7 +61,16 @@ function AccountShell() {
   const close = () => useOrbis.getState().setAccountOpen(false)
   const user = useSession((s) => s.user)
   const request = useSession((s) => s.request)
-  const [section, setSection] = useState<SectionId>('perfil')
+  const [section, setSection] = useState<SectionId>(() => {
+    // /app/?cuenta=notificaciones (acceso directo de la app o enlace de una notificación)
+    const params = new URLSearchParams(location.search)
+    const wanted = params.get('cuenta')
+    if (wanted !== null) {
+      params.delete('cuenta')
+      history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash)
+    }
+    return SECTIONS.some((s) => s.id === wanted) ? (wanted as SectionId) : 'perfil'
+  })
   const [info, setInfo] = useState<AccountInfo | null>(null)
   const [infoError, setInfoError] = useState('')
   const [toast, setToast] = useState<Toast>(null)
@@ -202,6 +214,7 @@ function AccountShell() {
               >
                 {section === 'perfil' && <ProfileSection notify={notify} />}
                 {section === 'seguridad' && <SecuritySection notify={notify} info={info} />}
+                {section === 'notificaciones' && <NotificationsSection notify={notify} />}
                 {section === 'preferencias' && <PreferencesSection />}
                 {section === 'datos' && <DataSection notify={notify} />}
                 {section === 'peligro' && <DangerSection notify={notify} />}
@@ -259,7 +272,7 @@ function Summary({ info }: { info: AccountInfo | null }) {
 
 /* ─────────────────────────── Piezas comunes ─────────────────────────── */
 
-function Panel({ title, description, children, tone = 'default' }: { title: string; description?: string; children: ReactNode; tone?: 'default' | 'danger' }) {
+export function Panel({ title, description, children, tone = 'default' }: { title: string; description?: string; children: ReactNode; tone?: 'default' | 'danger' }) {
   return (
     <section className={`rounded-3xl border p-6 md:p-7 ${tone === 'danger' ? 'border-red-400/20 bg-red-500/[0.04]' : 'border-white/[0.07] bg-white/[0.025]'}`}>
       <h2 className={`font-display text-2xl leading-tight ${tone === 'danger' ? 'text-red-100' : 'text-white'}`}>{title}</h2>
@@ -269,7 +282,7 @@ function Panel({ title, description, children, tone = 'default' }: { title: stri
   )
 }
 
-function ActionButton({
+export function ActionButton({
   children,
   busy,
   variant = 'primary',
@@ -477,7 +490,7 @@ function SecuritySection({ notify, info }: { notify: (k: 'ok' | 'error', t: stri
 
 /* ─────────────────────────── Preferencias ─────────────────────────── */
 
-function Toggle({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex cursor-pointer items-start justify-between gap-6 py-4">
       <span>
