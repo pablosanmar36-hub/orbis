@@ -74,6 +74,7 @@ function AccountShell() {
   const [info, setInfo] = useState<AccountInfo | null>(null)
   const [infoError, setInfoError] = useState('')
   const [toast, setToast] = useState<Toast>(null)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const toastTimer = useRef<number>(0)
 
   const notify = useCallback((kind: 'ok' | 'error', text: string) => {
@@ -189,10 +190,7 @@ function AccountShell() {
               })}
               <li className="md:mt-1">
                 <button
-                  onClick={() => {
-                    useOrbis.getState().setAccountOpen(false)
-                    useSession.getState().logout()
-                  }}
+                  onClick={() => setConfirmLogout(true)}
                   className="flex w-full items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm text-white/55 transition hover:bg-white/[0.04] hover:text-white"
                 >
                   <LogOut size={16} strokeWidth={1.7} /> Cerrar sesión
@@ -224,6 +222,8 @@ function AccountShell() {
         </div>
       </motion.div>
 
+      <AnimatePresence>{confirmLogout && <LogoutConfirm name={user?.nombre} onStay={() => setConfirmLogout(false)} />}</AnimatePresence>
+
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -239,6 +239,76 @@ function AccountShell() {
           </motion.div>
         )}
       </AnimatePresence>
+    </motion.div>
+  )
+}
+
+/* ─────────────────────────── Confirmar cierre de sesión ─────────────────────────── */
+
+function LogoutConfirm({ name, onStay }: { name?: string; onStay: () => void }) {
+  const stayRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => stayRef.current?.focus(), [])
+
+  const leave = () => {
+    useOrbis.getState().setAccountOpen(false)
+    useSession.getState().logout()
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      className="fixed inset-0 z-[80] grid place-items-center bg-black/60 px-5 backdrop-blur-sm"
+      onClick={onStay}
+      onKeyDown={(e) => {
+        // Escape cierra solo este aviso, no la página de la cuenta
+        if (e.key === 'Escape') {
+          e.stopPropagation()
+          onStay()
+        }
+      }}
+    >
+      <motion.div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="logout-title"
+        aria-describedby="logout-desc"
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.97 }}
+        transition={{ duration: 0.35, ease: EASE }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-3xl border border-white/[0.09] bg-[#0a0e1a] p-7 text-center shadow-[0_40px_90px_-20px_rgba(0,0,0,0.9)]"
+      >
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-200/10 text-amber-200 ring-1 ring-amber-200/20">
+          <LogOut size={22} strokeWidth={1.7} />
+        </span>
+        <h2 id="logout-title" className="mt-5 font-display text-3xl leading-tight text-white">
+          ¿Seguro que quieres salir?
+        </h2>
+        <p id="logout-desc" className="mt-2 text-[13px] leading-relaxed text-white/55">
+          {name ? `${name}, se` : 'Se'} cerrará tu sesión en este dispositivo. Tus recuerdos seguirán a salvo y podrás volver a entrar cuando quieras.
+        </p>
+        <div className="mt-7 grid gap-2.5 sm:grid-cols-2">
+          <button
+            ref={stayRef}
+            type="button"
+            onClick={onStay}
+            className="h-11 rounded-full bg-gradient-to-b from-amber-100 to-amber-300 text-sm font-medium text-black transition hover:brightness-105 active:scale-[0.98]"
+          >
+            Seguir en Orbis
+          </button>
+          <button
+            type="button"
+            onClick={leave}
+            className="h-11 rounded-full bg-white/[0.07] text-sm text-white transition hover:bg-red-500/80 active:scale-[0.98]"
+          >
+            Sí, cerrar sesión
+          </button>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }
