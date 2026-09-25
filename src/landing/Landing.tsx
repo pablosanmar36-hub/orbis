@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 import {
   ArrowDown,
   ArrowRight,
@@ -436,6 +436,7 @@ function CinemaSection({ onBoard }: { onBoard: () => void }) {
     return () => clearInterval(id)
   }, [])
   const scene = CINEMA[index]
+  const [demo, setDemo] = useState(false)
 
   return (
     <section id="cine" className="relative bg-black py-24 md:py-32">
@@ -451,8 +452,8 @@ function CinemaSection({ onBoard }: { onBoard: () => void }) {
             lede="Un botón y Orbis vuela de un destino a otro en orden cronológico, con barras de cine y una banda sonora ambiental generada al momento."
           />
           <Rise>
-            <button onClick={onBoard} className="flex items-center gap-2 rounded-full border border-star/20 px-5 py-3 text-sm text-star transition hover:border-sun hover:text-sun">
-              <Play size={15} fill="currentColor" /> Probar el modo cine
+            <button onClick={() => setDemo(true)} className="flex items-center gap-2 rounded-full border border-star/20 px-5 py-3 text-sm text-star transition hover:border-sun hover:text-sun">
+              <Play size={15} fill="currentColor" /> Ver un ejemplo del modo cine
             </button>
           </Rise>
         </div>
@@ -490,7 +491,91 @@ function CinemaSection({ onBoard }: { onBoard: () => void }) {
           </div>
         </Rise>
       </div>
+      <AnimatePresence>{demo && <CinemaDemo onClose={() => setDemo(false)} onBoard={onBoard} />}</AnimatePresence>
     </section>
+  )
+}
+
+const MONTHS: Record<string, number> = { Ene: 1, Feb: 2, Mar: 3, Abr: 4, May: 5, Jun: 6, Jul: 7, Ago: 8, Sep: 9, Oct: 10, Nov: 11, Dic: 12 }
+const tripKey = (d: string) => { const [m, y] = d.split(' '); return Number(y) * 100 + (MONTHS[m] ?? 0) }
+const SCENE_MS = 4500
+
+/** Ejemplo a pantalla completa del modo cine: recorre los viajes de ejemplo en orden cronológico. */
+function CinemaDemo({ onClose, onBoard }: { onClose: () => void; onBoard: () => void }) {
+  const reel = [...TRIPS].sort((a, b) => tripKey(a.date) - tripKey(b.date)).slice(0, 7)
+  const [i, setI] = useState(0)
+  const done = i >= reel.length
+  useEffect(() => {
+    if (done) return
+    const id = setTimeout(() => setI((n) => n + 1), SCENE_MS)
+    return () => clearTimeout(id)
+  }, [i, done])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+  }, [onClose])
+  const t = reel[Math.min(i, reel.length - 1)]
+
+  return (
+    <motion.div role="dialog" aria-modal="true" aria-label="Ejemplo del modo cine" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }} className="fixed inset-0 z-[70] overflow-hidden bg-black">
+      <AnimatePresence>
+        <motion.img
+          key={t.photo}
+          src={t.photo.replace('w=1200', 'w=1800')}
+          alt=""
+          initial={{ opacity: 0, scale: 1.12 }}
+          animate={{ opacity: done ? 0.35 : 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ opacity: { duration: 1.4 }, scale: { duration: SCENE_MS / 1000 + 1.5, ease: 'linear' } }}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </AnimatePresence>
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.7),transparent_65%)]" />
+      <motion.div initial={{ height: 0 }} animate={{ height: '11%' }} transition={{ duration: 1, ease: EASE }} className="absolute inset-x-0 top-0 bg-black" />
+      <motion.div initial={{ height: 0 }} animate={{ height: '11%' }} transition={{ duration: 1, ease: EASE }} className="absolute inset-x-0 bottom-0 bg-black" />
+
+      <div className="absolute inset-x-0 top-0 flex h-[11%] items-center justify-between px-5 md:px-10">
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Modo cine · cuenta de ejemplo</p>
+        <button onClick={onClose} className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-white/80 transition hover:border-white hover:text-white">
+          Cerrar ✕
+        </button>
+      </div>
+
+      {!done ? (
+        <div key={i} className="absolute bottom-[17%] left-[6%] right-[6%] max-w-2xl">
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.3 }} className="font-mono text-[10px] uppercase tracking-[0.4em] text-sun/85">
+            {String(i + 1).padStart(2, '0')} — {t.date} · {t.country}
+          </motion.p>
+          <motion.h3 initial={{ y: 20, opacity: 0.001 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1.1, ease: EASE, delay: 0.4 }} className="mt-3 font-display text-[clamp(3rem,9vw,7rem)] leading-[0.9] text-white">
+            {t.place}
+          </motion.h3>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, delay: 1 }} className="mt-3 font-display text-xl italic text-white/75 md:text-2xl">
+            “{t.caption}”
+          </motion.p>
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: EASE }} className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-sun/85">Fin · {reel.length} viajes</p>
+          <h3 className="mt-4 font-display text-[clamp(2.6rem,7vw,5.5rem)] leading-[0.92] text-white">Ahora imagínalo con los tuyos.</h3>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <button onClick={onBoard} className="rounded-full bg-star px-6 py-3 text-sm font-medium text-ink transition hover:bg-sun">Crear mi globo</button>
+            <button onClick={() => setI(0)} className="rounded-full border border-white/25 px-6 py-3 text-sm text-white transition hover:border-white">Ver otra vez</button>
+          </div>
+        </motion.div>
+      )}
+
+      <div className="absolute bottom-[4%] left-[6%] right-[6%] flex gap-1.5">
+        {reel.map((r, n) => (
+          <span key={r.place} className="h-[2px] flex-1 overflow-hidden rounded-full bg-white/20">
+            {n < i ? <span className="block h-full w-full bg-white" /> : n === i && !done ? (
+              <motion.span className="block h-full bg-white" initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: SCENE_MS / 1000, ease: 'linear' }} />
+            ) : null}
+          </span>
+        ))}
+      </div>
+    </motion.div>
   )
 }
 
