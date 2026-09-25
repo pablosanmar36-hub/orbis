@@ -14,11 +14,14 @@ import {
   Smartphone,
   Sparkles,
   UploadCloud,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BoardingPass } from './BoardingPass'
 import { APP_URL, CINEMA, FAQ, PHOTOS, TRIPS } from './content'
 import { DepartureBoard } from './DepartureBoard'
+import { AmbientEngine } from '../lib/ambient'
 import { WarpOverlay } from './WarpOverlay'
 import { ZoomCompare } from './ZoomCompare'
 
@@ -516,6 +519,15 @@ function CinemaDemo({ onClose, onBoard }: { onClose: () => void; onBoard: () => 
     document.body.style.overflow = 'hidden'
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
   }, [onClose])
+  // Banda sonora ambiental generada al momento, la misma que usa el modo cine de la app
+  const engine = useRef<AmbientEngine | null>(null)
+  const [muted, setMuted] = useState(false)
+  useEffect(() => {
+    if (muted) return
+    engine.current ??= new AmbientEngine()
+    engine.current.start()
+    return () => engine.current?.stop()
+  }, [muted])
   const t = reel[Math.min(i, reel.length - 1)]
 
   return (
@@ -538,9 +550,14 @@ function CinemaDemo({ onClose, onBoard }: { onClose: () => void; onBoard: () => 
 
       <div className="absolute inset-x-0 top-0 flex h-[11%] items-center justify-between px-5 md:px-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Modo cine · cuenta de ejemplo</p>
-        <button onClick={onClose} className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-white/80 transition hover:border-white hover:text-white">
-          Cerrar ✕
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Activar música' : 'Silenciar música'} className="grid h-8 w-8 place-items-center rounded-full border border-white/20 text-white/80 transition hover:border-white hover:text-white">
+            {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
+          <button onClick={onClose} className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-white/80 transition hover:border-white hover:text-white">
+            Cerrar ✕
+          </button>
+        </div>
       </div>
 
       {!done ? (
