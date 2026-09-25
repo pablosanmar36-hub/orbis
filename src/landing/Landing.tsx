@@ -70,6 +70,7 @@ function Nav({ onBoard }: { onBoard: () => void }) {
         <ul className="hidden items-center gap-8 text-sm text-star/65 xl:flex">
           {[
             ['Cómo funciona', '#como-funciona'],
+            ['Ejemplo', '#ejemplo'],
             ['Zoom real', '#zoom'],
             ['Modo cine', '#cine'],
             ['Precios', '#precios'],
@@ -286,6 +287,103 @@ function HowItWorks() {
           ))}
         </ol>
       </div>
+    </section>
+  )
+}
+
+/* ───────────────────────────── Ejemplo real ───────────────────────────── */
+
+/** Un globo de ejemplo tal y como se ve dentro de Orbis: elige un recuerdo y mira su ficha. */
+function ExampleSection({ onBoard }: { onBoard: () => void }) {
+  const trips = TRIPS.slice(0, 6)
+  const [pick, setPick] = useState(0)
+  const trip = trips[pick]
+  return (
+    <section id="ejemplo" className="mx-auto max-w-7xl px-5 py-24 md:px-10 md:py-32">
+      <SectionHead
+        eyebrow="Un globo de ejemplo"
+        title={
+          <>
+            Mira lo que hay <em className="text-sun">dentro</em>.
+          </>
+        }
+        lede="Esto es una cuenta de ejemplo con seis viajes. Elige uno de la lista y verás la ficha igual que aparece en Orbis: la foto, el punto exacto en el mapa, la fecha y la nota que escribiste."
+      />
+      <Rise delay={0.1}>
+        <div className="mt-14 grid gap-px overflow-hidden rounded-[1.75rem] border border-white/[0.08] bg-white/[0.08] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          {/* Lista de recuerdos */}
+          <div className="bg-ink p-5 sm:p-7">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-star/35">Mis recuerdos · {trips.length}</p>
+            <ul className="mt-5 flex flex-col gap-1.5">
+              {trips.map((t, i) => (
+                <li key={t.place}>
+                  <button
+                    onClick={() => setPick(i)}
+                    aria-current={i === pick}
+                    className={`flex w-full items-center gap-3 rounded-2xl p-2 text-left transition ${i === pick ? 'bg-white/[0.07]' : 'hover:bg-white/[0.04]'}`}
+                  >
+                    <img src={t.photo.replace('w=1200', 'w=200')} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate font-display text-xl leading-tight ${i === pick ? 'text-sun' : 'text-star'}`}>{t.place}</span>
+                      <span className="block truncate text-[12px] text-star/45">
+                        {t.country} · {t.date}
+                      </span>
+                    </span>
+                    <ArrowRight size={15} className={i === pick ? 'text-sun' : 'text-star/25'} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 text-[13px] leading-relaxed text-star/45">En tu cuenta esta lista son tus viajes, y cada uno es un punto de luz girando en tu propio planeta.</p>
+          </div>
+
+          {/* Ficha del recuerdo elegido */}
+          <div className="relative min-h-[26rem] overflow-hidden bg-night">
+            <motion.img
+              key={trip.photo}
+              src={trip.photo}
+              alt={`${trip.place}, ${trip.country}`}
+              loading="lazy"
+              initial={{ opacity: 0.001, scale: 1.06 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.1, ease: EASE }}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(3,5,12,0.94),rgba(3,5,12,0.15)_65%)]" />
+            <div className="absolute left-5 top-5 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-star/80 backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-sun" /> Cuenta de ejemplo
+            </div>
+            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-sun/85">
+                {Math.abs(trip.lat).toFixed(4)}° {trip.lat >= 0 ? 'N' : 'S'} · {Math.abs(trip.lng).toFixed(4)}° {trip.lng >= 0 ? 'E' : 'O'}
+              </p>
+              <motion.h3
+                key={trip.place}
+                initial={{ y: 14, opacity: 0.001 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: EASE }}
+                className="mt-2 font-display text-[clamp(2.4rem,4.5vw,3.6rem)] leading-[0.95] text-white"
+              >
+                {trip.place}
+              </motion.h3>
+              <p className="mt-2 font-display text-lg italic leading-snug text-white/70">“{trip.caption}”</p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.2em] text-star/50">
+                <span>{trip.date}</span>
+                <span>{trip.country}</span>
+                <span>12 fotos · 2 vídeos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Rise>
+      <Rise delay={0.15}>
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          <button onClick={onBoard} className="flex items-center gap-2 rounded-full bg-star px-5 py-3 text-sm font-medium text-ink transition hover:bg-sun">
+            Crear mi globo <ArrowRight size={15} />
+          </button>
+          <p className="text-[13px] text-star/45">Gratis para empezar y sin tarjeta. Tus recuerdos solo los ves tú.</p>
+        </div>
+      </Rise>
     </section>
   )
 }
@@ -691,6 +789,7 @@ export function Landing() {
         <Hero launching={launching} onLaunch={launch} />
         <Departures />
         <HowItWorks />
+        <ExampleSection onBoard={board} />
         <ZoomSection />
         <CinemaSection onBoard={board} />
         <Gallery />
